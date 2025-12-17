@@ -222,6 +222,15 @@ on:
         type: boolean
         description: "Whether PRs can be tested in combination with other PRs by mentioning them as `Linked PR: <link to PR>` in the PR description"
         default: false
+      enable_upload_artifact:
+        type: boolean
+        default: false
+      artifact_name:
+        type: string
+        default: "artifact"
+      artifact_path:
+        type: string
+        default: ""
 
 jobs:
   macos-build:
@@ -383,6 +392,11 @@ jobs:
         run: ${{ inputs.linux_pre_build_command }}
       - name: Build / Test
         run: ${{ inputs.linux_build_command }} ${{ (contains(matrix.swift_version, 'nightly') && inputs.swift_nightly_flags) || inputs.swift_flags }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.enable_upload_artifact && (success() || failure()) }}
+        with:
+          name: ${{ inputs.artifact_name }}-linux-${{ matrix.swift_version }}-${{ matrix.os_version }}-${{ matrix.arch }}
+          path: ${{ inputs.artifact_path }}
 
   linux-static-sdk-build:
     name: Static Linux Swift SDK Build (${{ matrix.swift_version }} - ${{ matrix.os_version }} - ${{ matrix.arch }})
@@ -782,3 +796,8 @@ jobs:
         timeout-minutes: 60
         if: ${{ !inputs.enable_windows_docker }}
         run: powershell.exe -NoLogo -File $env:TEMP\test-script\run.ps1; exit $LastExitCode
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.enable_upload_artifact && (success() || failure()) }}
+        with:
+          name: ${{ inputs.artifact_name }}-windows-${{ matrix.swift_version }}-${{ matrix.os_version }}
+          path: ${{ inputs.artifact_path }}
